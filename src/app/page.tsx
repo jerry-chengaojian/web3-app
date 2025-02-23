@@ -35,15 +35,6 @@ export default function Home() {
     <main className="p-8">
       <h1 className="text-2xl font-bold mb-6">区块链数据读取</h1>
       
-      <nav className="mb-6">
-        <Link href="/event-listening" className="text-blue-600 hover:text-blue-800 mr-4">
-          查看事件监听
-        </Link>
-        <Link href="/send-transaction" className="text-blue-600 hover:text-blue-800">
-          发送交易
-        </Link>
-      </nav>
-      
       <div className="space-y-6">
         <div className="bg-gray-100 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-2">钱包余额</h2>
