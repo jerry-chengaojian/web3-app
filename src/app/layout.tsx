@@ -64,6 +64,12 @@ export default function RootLayout({
                   >
                     合约读取
                   </Link>
+                  <Link
+                    href="/send-token"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"
+                  >
+                    发送代币
+                  </Link>
                 </div>
               </div>
             </div>
