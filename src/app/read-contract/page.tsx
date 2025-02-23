@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import MyTokenABI from '@/contracts/MyToken.json';
-import { getContract } from '@/utils/ethereum';
+import { getReadOnlyContract } from '@/utils/ethereum';
 
 export default function ReadContract() {
   const CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
@@ -22,11 +22,9 @@ export default function ReadContract() {
   useEffect(() => {
     const fetchContractData = async () => {
       try {
-        // 创建合约实例
-        const contractInstance = getContract(CONTRACT_ADDRESS, MyTokenABI.abi);
+        const contractInstance = getReadOnlyContract(CONTRACT_ADDRESS, MyTokenABI.abi);
         setContract(contractInstance);
 
-        // 读取合约数据
         const [name, symbol, totalSupply, decimals] = await Promise.all([
           contractInstance.name(),
           contractInstance.symbol(),
@@ -34,7 +32,6 @@ export default function ReadContract() {
           contractInstance.decimals()
         ]);
 
-        // 更新状态
         setTokenData({
           name,
           symbol,

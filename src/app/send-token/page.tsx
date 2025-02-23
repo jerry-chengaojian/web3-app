@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import MyTokenABI from '@/contracts/MyToken.json';
+import { provider, wallet } from '@/utils/ethereum';
 
 export default function SendToken() {
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -18,13 +19,6 @@ export default function SendToken() {
     setLoading(true);
 
     try {
-      // 连接到本地区块链
-      const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
-      
-      // 使用测试私钥 - Hardhat 默认第一个账户
-      const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-      const wallet = new ethers.Wallet(privateKey, provider);
-
       // 创建合约实例
       const contractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
       const contract = new ethers.Contract(contractAddress, MyTokenABI.abi, wallet);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import Link from 'next/link';
+import { provider } from '@/utils/ethereum';
 
 export default function Home() {
   const [balance, setBalance] = useState<string>('');
@@ -12,15 +12,11 @@ export default function Home() {
   const testAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'; // 这是 Hardhat 的默认第一个账户
   
   useEffect(() => {
-    const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
-    
     const fetchData = async () => {
       try {
-        // 获取余额
         const balance = await provider.getBalance(testAddress);
         setBalance(ethers.utils.formatEther(balance));
         
-        // 获取最新区块信息
         const block = await provider.getBlock('latest');
         setBlockInfo(block);
       } catch (error) {

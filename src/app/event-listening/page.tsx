@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { provider } from '@/utils/ethereum';
 
 interface TransactionInfo {
   hash: string;
@@ -24,11 +25,8 @@ export default function EventListening() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    let provider: ethers.providers.JsonRpcProvider;
-
     const setupEventListening = async () => {
       try {
-        provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
         setIsConnected(true);
         
         provider.on('block', async (blockNumber) => {
@@ -36,7 +34,6 @@ export default function EventListening() {
             const block = await provider.getBlock(blockNumber);
             const transactions = await Promise.all(
               block.transactions.map(async (txHash) => {
-                // 获取交易收据来确认状态
                 const receipt = await provider.getTransactionReceipt(txHash);
                 const tx = await provider.getTransaction(txHash);
                 return { tx, receipt };
@@ -80,9 +77,7 @@ export default function EventListening() {
     setupEventListening();
 
     return () => {
-      if (provider) {
-        provider.removeAllListeners();
-      }
+      provider.removeAllListeners();
     };
   }, []);
 
