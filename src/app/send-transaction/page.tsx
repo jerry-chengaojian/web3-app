@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { wallet } from '@/utils/ethereum';
+import { TransactionForm } from '@/components/transaction-form';
+import { useWallet } from '@/hooks/use-wallet';
 
 export default function SendTransaction() {
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [amount, setAmount] = useState('');
+  const { signer, isConnected, connectWallet, error: walletError } = useWallet();
   const [transactionHash, setTransactionHash] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendTransaction = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendTransaction = async (recipientAddress: string, amount: string) => {
+    if (!signer) return;
+    
     setError('');
     setTransactionHash('');
     setLoading(true);
@@ -23,81 +24,44 @@ export default function SendTransaction() {
         value: ethers.utils.parseEther(amount),
       };
 
-      const transaction = await wallet.sendTransaction(tx);
+      const transaction = await signer.sendTransaction(tx);
       setTransactionHash(transaction.hash);
       
-      const receipt = await transaction.wait();
-      console.log('Transaction confirmed:', receipt);
+      await transaction.wait();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed');
+      setError(err instanceof Error ? err.message : '交易失败');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold mb-6">发送交易</h1>
-
-      <form onSubmit={handleSendTransaction} className="space-y-6 max-w-md">
-        <div>
-          <label htmlFor="recipient" className="block text-sm font-medium mb-2">
-            接收地址
-          </label>
-          <input
-            id="recipient"
-            type="text"
-            value={recipientAddress}
-            onChange={(e) => setRecipientAddress(e.target.value)}
-            className="w-full p-2 border rounded"
-            placeholder="0x..."
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium mb-2">
-            金额 (ETH)
-          </label>
-          <input
-            id="amount"
-            type="number"
-            step="0.0001"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full p-2 border rounded"
-            placeholder="0.1"
-            required
-          />
-        </div>
-
+  if (!isConnected) {
+    return (
+      <div className="p-8">
         <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-2 px-4 rounded ${
-            loading
-              ? 'bg-gray-400'
-              : 'bg-blue-600 hover:bg-blue-700'
-          } text-white font-medium`}
+          onClick={connectWallet}
+          className="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          {loading ? '交易处理中...' : '发送交易'}
+          连接钱包
         </button>
-      </form>
+        {walletError && (
+          <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
+            {walletError}
+          </div>
+        )}
+      </div>
+    );
+  }
 
-      {error && (
-        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {transactionHash && (
-        <div className="mt-4 p-4 bg-green-100 text-green-700 rounded">
-          <p>交易已发送！</p>
-          <p className="break-all">
-            交易哈希: {transactionHash}
-          </p>
-        </div>
-      )}
-    </main>
+  return (
+    <TransactionForm
+      onSubmit={handleSendTransaction}
+      title="发送交易"
+      amountLabel="金额 (ETH)"
+      submitButtonText="发送交易"
+      loading={loading}
+      error={error}
+      transactionHash={transactionHash}
+    />
   );
 } 
