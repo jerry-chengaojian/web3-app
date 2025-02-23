@@ -53,6 +53,12 @@ export default function RootLayout({
                     事件监听
                   </Link>
                   <Link
+                    href="/event-monitor"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"
+                  >
+                    事件监控
+                  </Link>
+                  <Link
                     href="/send-transaction"
                     className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"
                   >
