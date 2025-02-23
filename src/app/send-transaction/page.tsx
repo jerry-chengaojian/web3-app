@@ -30,8 +30,9 @@ export default function SendTransaction() {
       const transaction = await wallet.sendTransaction(tx);
       setTransactionHash(transaction.hash);
       
-      // 等待交易被确认
-      await transaction.wait();
+      // 等待交易被确认并通知用户
+      const receipt = await transaction.wait();
+      console.log('Transaction confirmed:', receipt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed');
     } finally {
