@@ -4,16 +4,13 @@ import { getContract, getReadOnlyContract } from '@/utils/ethereum';
 
 const CONTRACT_ADDRESS = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
 
-export interface Proposal {
-  name: string;
-  voteCount: number;
-}
-
-export interface Ballot {
-  id: string;
-  chairperson: string;
-  proposals: Proposal[];
-  voterCount: number;
+export type Ballot = {
+  id: string
+  chairperson: string
+  proposals: { name: string; voteCount: number }[]
+  voterCount: number
+  status: 'active' | 'ended'
+  endTime: number
 }
 
 export class BallotService {
@@ -29,7 +26,7 @@ export class BallotService {
     return await this.readOnlyContract.chairperson();
   }
 
-  async getProposals(): Promise<Proposal[]> {
+  async getProposals(): Promise<{ name: string; voteCount: number }[]> {
     return await this.readOnlyContract.proposalList();
   }
 

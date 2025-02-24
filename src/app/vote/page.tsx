@@ -19,7 +19,9 @@ export default function VotePage() {
           id: '1', // Using single ballot for now
           chairperson,
           proposals,
-          voterCount: 0 // This would need a separate counter in the contract
+          voterCount: 0,
+          status: 'active',
+          endTime: Date.now() + 7 * 24 * 60 * 60 * 1000
         })
       } catch (err) {
         setError('Failed to load ballot')
