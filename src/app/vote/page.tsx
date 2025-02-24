@@ -56,6 +56,11 @@ export default function VotePage() {
     }
 
     try {
+      if (!voterInfo?.weight || voterInfo.weight <= 0) {
+        setError('You do not have voting rights')
+        return
+      }
+      
       await ballotService.vote(proposalIndex, signer)
       await loadBallotData() // Refresh data
     } catch (err) {
@@ -140,8 +145,16 @@ export default function VotePage() {
                   <span>{proposal.name}</span>
                   <button
                     onClick={() => handleVote(index)}
-                    disabled={!isConnected || voterInfo?.voted}
-                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    disabled={!isConnected || 
+                             voterInfo?.voted || 
+                             !voterInfo?.weight || 
+                             voterInfo.weight <= 0}
+                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title={!voterInfo?.weight || voterInfo.weight <= 0 ? 
+                          'You do not have voting rights' : 
+                          voterInfo?.voted ? 
+                          'You have already voted' : 
+                          'Click to vote'}
                   >
                     Vote
                   </button>
@@ -171,12 +184,24 @@ export default function VotePage() {
               onChange={(e) => setDelegateAddress(e.target.value)}
               placeholder="Enter address"
               className="flex-1 px-4 py-2 border rounded"
-              disabled={!isConnected || voterInfo?.voted}
+              disabled={!isConnected || 
+                       voterInfo?.voted || 
+                       !voterInfo?.weight || 
+                       voterInfo.weight <= 0}
             />
             <button
               onClick={handleDelegate}
-              disabled={!isConnected || !delegateAddress || voterInfo?.voted}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+              disabled={!isConnected || 
+                       !delegateAddress || 
+                       voterInfo?.voted || 
+                       !voterInfo?.weight || 
+                       voterInfo.weight <= 0}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={!voterInfo?.weight || voterInfo.weight <= 0 ? 
+                    'You do not have voting rights' : 
+                    voterInfo?.voted ? 
+                    'You have already voted' : 
+                    'Click to delegate'}
             >
               Delegate
             </button>
