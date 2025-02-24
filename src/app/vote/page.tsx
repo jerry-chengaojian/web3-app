@@ -14,17 +14,18 @@ export default function VotePage() {
 
   useEffect(() => {
     loadBallotData()
-  }, [])
+  }, [signer])
 
   async function loadBallotData() {
     try {
+      setLoading(true)
       const [chairperson, proposals] = await Promise.all([
         ballotService.getChairperson(),
         ballotService.getProposals()
       ])
 
       setBallot({
-        id: '1', // Using single ballot for now
+        id: '1',
         chairperson,
         proposals,
         voterCount: 0,
@@ -35,7 +36,10 @@ export default function VotePage() {
       if (signer) {
         const address = await signer.getAddress()
         const voter = await ballotService.getVoterInfo(address)
+        console.log('Voter info:', voter)
         setVoterInfo(voter)
+      } else {
+        setVoterInfo(null)
       }
     } catch (err) {
       setError('Failed to load ballot data')
@@ -72,6 +76,33 @@ export default function VotePage() {
       setError('Failed to delegate')
     }
   }
+
+  const voterInfoDisplay = (
+    <div className="space-y-2">
+      <p className="text-sm">
+        <span className="text-gray-500">Voting Weight:</span>
+        <br />
+        {voterInfo && typeof voterInfo.weight !== 'undefined' 
+          ? voterInfo.weight.toString() 
+          : '0'}
+      </p>
+      <p className="text-sm">
+        <span className="text-gray-500">Voted:</span>
+        <br />
+        {voterInfo && typeof voterInfo.voted !== 'undefined' 
+          ? (voterInfo.voted ? 'Yes' : 'No')
+          : 'No'}
+      </p>
+      <p className="text-sm">
+        <span className="text-gray-500">Delegated To:</span>
+        <br />
+        {voterInfo?.delegate && 
+         voterInfo.delegate !== '0x0000000000000000000000000000000000000000'
+          ? voterInfo.delegate
+          : 'None'}
+      </p>
+    </div>
+  )
 
   if (loading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
@@ -157,7 +188,7 @@ export default function VotePage() {
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Your Status</h2>
-          {!isConnected ? (
+          {!isConnected || !signer ? (
             <button
               onClick={connectWallet}
               className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -165,25 +196,7 @@ export default function VotePage() {
               Connect Wallet
             </button>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm">
-                <span className="text-gray-500">Voting Weight:</span>
-                <br />
-                {voterInfo?.weight.toString() || '0'}
-              </p>
-              <p className="text-sm">
-                <span className="text-gray-500">Voted:</span>
-                <br />
-                {voterInfo?.voted ? 'Yes' : 'No'}
-              </p>
-              <p className="text-sm">
-                <span className="text-gray-500">Delegated To:</span>
-                <br />
-                {voterInfo?.delegate !== '0x0000000000000000000000000000000000000000'
-                  ? voterInfo?.delegate
-                  : 'None'}
-              </p>
-            </div>
+            voterInfoDisplay
           )}
         </div>
       </div>
