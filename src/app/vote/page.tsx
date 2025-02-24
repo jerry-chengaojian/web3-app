@@ -11,6 +11,8 @@ export default function VotePage() {
   const [voterInfo, setVoterInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [voterAddresses, setVoterAddresses] = useState<string[]>([])
+  const [isChairperson, setIsChairperson] = useState(false)
 
   useEffect(() => {
     loadBallotData()
@@ -38,6 +40,7 @@ export default function VotePage() {
         const voter = await ballotService.getVoterInfo(address)
         console.log('Voter info:', voter)
         setVoterInfo(voter)
+        setIsChairperson(address.toLowerCase() === chairperson.toLowerCase())
       } else {
         setVoterInfo(null)
       }
@@ -79,6 +82,19 @@ export default function VotePage() {
     } catch (err) {
       console.error('Failed to delegate:', err)
       setError('Failed to delegate')
+    }
+  }
+
+  const handleGiveVotingRights = async () => {
+    if (!signer || !isChairperson || !voterAddresses.length) return
+
+    try {
+      await ballotService.giveRightToVote(voterAddresses, signer)
+      setVoterAddresses([]) // Clear input after successful operation
+      await loadBallotData() // Refresh data
+    } catch (err) {
+      console.error('Failed to give voting rights:', err)
+      setError('Failed to give voting rights')
     }
   }
 
@@ -132,6 +148,27 @@ export default function VotePage() {
             </p>
           </div>
         </div>
+
+        {isChairperson && (
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Give Voting Rights</h2>
+            <div className="space-y-4">
+              <textarea
+                value={voterAddresses.join('\n')}
+                onChange={(e) => setVoterAddresses(e.target.value.split('\n').filter(addr => addr.trim()))}
+                placeholder="Enter voter addresses (one per line)"
+                className="w-full px-4 py-2 border rounded min-h-[100px]"
+              />
+              <button
+                onClick={handleGiveVotingRights}
+                disabled={!voterAddresses.length}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Give Voting Rights
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Middle Column */}
