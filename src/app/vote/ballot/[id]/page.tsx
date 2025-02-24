@@ -1,33 +1,78 @@
 'use client'
 
-import { useState } from 'react'
-
-// Mock data
-const MOCK_BALLOT = {
-  id: '1',
-  chairperson: '0x123...',
-  proposals: [
-    { name: 'Proposal A', voteCount: 5 },
-    { name: 'Proposal B', voteCount: 3 },
-  ],
-  voterCount: 10,
-  status: 'active',
-  endTime: Date.now() + 86400000,
-}
+import { useState, useEffect } from 'react'
+import { useWalletStore } from '@/stores/wallet-store'
+import { ballotService } from '@/services/ballot-service'
 
 export default function BallotDetailPage({ params }: { params: { id: string } }) {
+  const { signer, isConnected, connectWallet } = useWalletStore()
   const [delegateAddress, setDelegateAddress] = useState('')
-  const ballot = MOCK_BALLOT
+  const [ballot, setBallot] = useState<any>(null)
+  const [voterInfo, setVoterInfo] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadBallotData()
+  }, [])
+
+  async function loadBallotData() {
+    try {
+      const [chairperson, proposals] = await Promise.all([
+        ballotService.getChairperson(),
+        ballotService.getProposals()
+      ])
+
+      setBallot({
+        chairperson,
+        proposals,
+        voterCount: 0
+      })
+
+      if (signer) {
+        const address = await signer.getAddress()
+        const voter = await ballotService.getVoterInfo(address)
+        setVoterInfo(voter)
+      }
+    } catch (err) {
+      setError('Failed to load ballot data')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleVote = async (proposalIndex: number) => {
-    // Mock vote transaction
-    console.log('Voting for proposal', proposalIndex)
+    if (!signer) {
+      await connectWallet()
+      return
+    }
+
+    try {
+      await ballotService.vote(proposalIndex, signer)
+      await loadBallotData() // Refresh data
+    } catch (err) {
+      console.error('Failed to vote:', err)
+      setError('Failed to vote')
+    }
   }
 
   const handleDelegate = async () => {
-    // Mock delegate transaction
-    console.log('Delegating to', delegateAddress)
+    if (!signer || !delegateAddress) return
+
+    try {
+      await ballotService.delegate(delegateAddress, signer)
+      await loadBallotData() // Refresh data
+      setDelegateAddress('')
+    } catch (err) {
+      console.error('Failed to delegate:', err)
+      setError('Failed to delegate')
+    }
   }
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
+  if (!ballot) return <div>Ballot not found</div>
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -46,11 +91,6 @@ export default function BallotDetailPage({ params }: { params: { id: string } })
               <br />
               {ballot.voterCount}
             </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Status:</span>
-              <br />
-              <span className="capitalize">{ballot.status}</span>
-            </p>
           </div>
         </div>
       </div>
@@ -60,13 +100,14 @@ export default function BallotDetailPage({ params }: { params: { id: string } })
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Proposals</h2>
           <div className="space-y-4">
-            {ballot.proposals.map((proposal, index) => (
+            {ballot.proposals.map((proposal: any, index: number) => (
               <div key={index} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span>{proposal.name}</span>
                   <button
                     onClick={() => handleVote(index)}
-                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    disabled={!isConnected || voterInfo?.voted}
+                    className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
                   >
                     Vote
                   </button>
@@ -75,12 +116,12 @@ export default function BallotDetailPage({ params }: { params: { id: string } })
                   <div
                     className="h-full bg-blue-600"
                     style={{
-                      width: `${(proposal.voteCount / ballot.voterCount) * 100}%`,
+                      width: `${(proposal.voteCount / (ballot.voterCount || 1)) * 100}%`,
                     }}
                   />
                 </div>
                 <p className="text-sm text-gray-500">
-                  {proposal.voteCount} votes
+                  {proposal.voteCount.toString()} votes
                 </p>
               </div>
             ))}
@@ -96,10 +137,12 @@ export default function BallotDetailPage({ params }: { params: { id: string } })
               onChange={(e) => setDelegateAddress(e.target.value)}
               placeholder="Enter address"
               className="flex-1 px-4 py-2 border rounded"
+              disabled={!isConnected || voterInfo?.voted}
             />
             <button
               onClick={handleDelegate}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={!isConnected || !delegateAddress || voterInfo?.voted}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
             >
               Delegate
             </button>
@@ -111,20 +154,34 @@ export default function BallotDetailPage({ params }: { params: { id: string } })
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Your Status</h2>
-          <div className="space-y-2">
-            <p className="text-sm">
-              <span className="text-gray-500">Voting Weight:</span>
-              <br />1
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Voted:</span>
-              <br />No
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Delegated To:</span>
-              <br />None
-            </p>
-          </div>
+          {!isConnected ? (
+            <button
+              onClick={connectWallet}
+              className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm">
+                <span className="text-gray-500">Voting Weight:</span>
+                <br />
+                {voterInfo?.weight.toString() || '0'}
+              </p>
+              <p className="text-sm">
+                <span className="text-gray-500">Voted:</span>
+                <br />
+                {voterInfo?.voted ? 'Yes' : 'No'}
+              </p>
+              <p className="text-sm">
+                <span className="text-gray-500">Delegated To:</span>
+                <br />
+                {voterInfo?.delegate !== '0x0000000000000000000000000000000000000000'
+                  ? voterInfo?.delegate
+                  : 'None'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

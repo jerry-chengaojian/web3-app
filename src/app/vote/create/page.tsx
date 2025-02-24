@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useWalletStore } from '@/stores/wallet-store'
+import { ballotService } from '@/services/ballot-service'
 
 interface Proposal {
   name: string
@@ -13,9 +15,12 @@ interface Voter {
 
 export default function CreateBallotPage() {
   const router = useRouter()
+  const { signer, isConnected, connectWallet } = useWalletStore()
   const [step, setStep] = useState(1)
   const [proposals, setProposals] = useState<Proposal[]>([{ name: '' }])
   const [voters, setVoters] = useState<Voter[]>([{ address: '' }])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const addProposal = () => {
     setProposals([...proposals, { name: '' }])
@@ -38,8 +43,30 @@ export default function CreateBallotPage() {
   }
 
   const handleSubmit = async () => {
-    // Mock contract deployment
-    router.push('/vote')
+    if (!isConnected) {
+      await connectWallet()
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError('')
+
+      // Deploy new ballot contract
+      const proposalNames = proposals.map(p => p.name)
+      const ballotAddress = await ballotService.createBallot(proposalNames)
+
+      // Give right to vote to all voters
+      const voterAddresses = voters.map(v => v.address)
+      await ballotService.giveRightToVote(voterAddresses)
+
+      router.push('/vote')
+    } catch (err) {
+      console.error('Failed to create ballot:', err)
+      setError('Failed to create ballot')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -172,9 +199,10 @@ export default function CreateBallotPage() {
             </button>
             <button
               onClick={handleSubmit}
-              className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={loading}
+              className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
             >
-              Deploy Ballot
+              {loading ? 'Deploying...' : 'Deploy Ballot'}
             </button>
           </div>
         </div>
